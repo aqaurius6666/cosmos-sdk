@@ -16,6 +16,7 @@ import (
 
 var (
 	_ cryptotypes.PrivKey = &PrivKey{}
+	_ cryptotypes.PubKey  = &PubKey{}
 )
 
 type PrivKey struct {
@@ -34,28 +35,28 @@ const (
 )
 
 // Bytes returns the byte representation of the Private Key.
-func (privKey *PrivKey) Bytes() []byte {
+func (privKey PrivKey) Bytes() []byte {
 	return privKey.Key
 }
 
 // PubKey performs the point-scalar multiplication from the privKey on the
 // generator point to get the pubkey.
-func (privKey *PrivKey) PubKey() cryptotypes.PubKey {
+func (privKey PrivKey) PubKey() cryptotypes.PubKey {
 	_, pubkeyObject := secp256k1.PrivKeyFromBytes(secp256k1.S256(), privKey.Key)
 	pk := pubkeyObject.SerializeCompressed()
-	return &PubKey{Key: pk}
+	return PubKey{Key: pk}
 }
 
 // Equals - you probably don't need to use this.
 // Runs in constant time based on length of the
-func (privKey *PrivKey) Equals(other cryptotypes.PrivKey) bool {
+func (privKey PrivKey) Equals(other cryptotypes.PrivKey) bool {
 	return subtle.ConstantTimeCompare(privKey.Bytes(), other.Bytes()) == 1
 }
 
 // GenPrivKey generates a new ECDSA private key on curve secp256k1 private key.
 // It uses OS randomness to generate the private key.
-func GenPrivKey() *PrivKey {
-	return &PrivKey{Key: genPrivKey(crypto.CReader())}
+func GenPrivKey() PrivKey {
+	return PrivKey{Key: genPrivKey(crypto.CReader())}
 }
 
 // genPrivKey generates a new secp256k1 private key using the provided reader.
@@ -100,14 +101,12 @@ func GenPrivKeyFromSecret(secret []byte) *PrivKey {
 
 //-------------------------------------
 
-var _ cryptotypes.PubKey = &PubKey{}
-
 // PubKeySize is comprised of 32 bytes for one field element
 // (the x-coordinate), plus one byte for the parity of the y-coordinate.
 const PubKeySize = 33
 
 // Address returns a Bitcoin style addresses: RIPEMD160(SHA256(pubkey))
-func (pubKey *PubKey) Address() crypto.Address {
+func (pubKey PubKey) Address() crypto.Address {
 	if len(pubKey.Key) != PubKeySize {
 		panic("length of pubkey is incorrect")
 	}
@@ -119,10 +118,10 @@ func (pubKey *PubKey) Address() crypto.Address {
 }
 
 // Bytes returns the pubkey byte format.
-func (pubKey *PubKey) Bytes() []byte {
+func (pubKey PubKey) Bytes() []byte {
 	return pubKey.Key
 }
 
-func (pubKey *PubKey) Equals(other cryptotypes.PubKey) bool {
+func (pubKey PubKey) Equals(other cryptotypes.PubKey) bool {
 	return bytes.Equal(pubKey.Bytes(), other.Bytes())
 }
